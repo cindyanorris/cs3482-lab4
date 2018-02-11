@@ -6,6 +6,9 @@ LFLAGS = $(PFLAG)
 .C.o:
 	$(CC) $(CFLAGS) $< -o $@
 
+best:
+	make NgramLinkedList
+
 all:
 	scl enable devtoolset-3 '/bin/bash --rcfile <(echo "make ngram; exit")'
 
