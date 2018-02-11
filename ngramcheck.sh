@@ -35,17 +35,17 @@ filename="/var/tmp/ngram_`echo $USER`.out"
 
 if [ -e $filename ] 
 then
-   printf "removing: $filename\n"
+   #printf "removing: $filename\n"
    `rm $filename`
 fi
 
 if [ -e "$filename.sorted" ] 
 then
-   printf "removing: $filename.sorted\n"
+   #printf "removing: $filename.sorted\n"
    `rm $filename.sorted`
 fi
 
-printf "./ngram -b $input > $filename\n"
+#printf "./ngram -b $input > $filename\n"
 `./ngram -b $input > $filename`
 
 exec 4< $filename
@@ -95,10 +95,10 @@ done
 
 #now sort the file and make sure it is identical
 #to the correct output that has been sorted
-printf "sort $filename > $filename.sorted\n"
+#printf "sort $filename > $filename.sorted\n"
 sort $filename > "$filename.sorted"
 
-printf "diff $filename.sorted $input.2grams.sorted > diffs\n"
+#printf "diff $filename.sorted $input.2grams.sorted > diffs\n"
 diff "$filename.sorted" "$input.2grams.sorted" > diffs
 if [ -s diffs ]; then
   printf "There are differences between your output and the correct output\n";
