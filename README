@@ -1,0 +1,44 @@
+
+Your job is to write two more versions of the Ngrams class. The
+source file names will hint at how the Ngrams class is implemented.
+For example, you might put a new version of the Ngrams class in
+NgramsArray.h and NgramsArray.C.
+
+To cause make to compile this new version, you'll need to
+add this to the makefile:
+
+NgramArray:
+	-rm Ngrams.C
+	-rm Ngrams.h
+	ln -s NgramArray.C Ngrams.C
+	ln -s NgramArray.h Ngrams.h
+	make all
+
+To compile it, type:
+make NgramArray
+
+To see if it works, type:
+./ngramcheck.sh short
+./ngramcheck.sh shakespeare1000Lines
+./ngramcheck.sh shakespeare5000Lines
+./ngramcheck.sh shakespeare9000Lines
+
+To see how fast it runs, type:
+./profile.pl NgramArray
+
+You need to create two versions, one that uses the
+C standard template library and one that does not.
+The two versions that will be used for grading 
+are identified by the commands and the V1 and V2
+targets in the makefile:
+
+V1:
+	make NgramArray
+
+V2:
+	make NgramBetterLinkedList
+
+To see what your grade is, type:
+./driver.pl
+
+Good Luck!
