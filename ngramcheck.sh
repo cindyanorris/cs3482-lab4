@@ -10,7 +10,7 @@
 # possible inputs are: short, shakespeare1000Lines, shakespeare5000Lines
 #                      shakespeare9000Lines
 #
-dir="/u/csd/can/classes/3482/spring18/Labs/toollab/Inputs/"
+dir="/u/css/classes/3482/181/lab4/"
 if [ "$1" != "" ]; then
    input="$dir$1"
 else

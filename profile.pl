@@ -21,7 +21,7 @@ my $login = (getpwuid($<))[0] || "unknown";
 my $tmpdir = "/var/tmp/toollab.$login.$$";
 my $diemsg = "The files are in $tmpdir.";
 my $infile = "ngram";
-my $inputDir = "/u/csd/can/classes/3482/spring18/Labs/toollab/Inputs/";
+my $inputDir = "/u/css/classes/3482/181/lab4/";
 my $shakespeare = $inputDir."shakespeare9000Lines";
 
 
