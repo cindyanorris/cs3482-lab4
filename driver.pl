@@ -29,15 +29,31 @@ my $shakespeare = $inputDir."shakespeare9000Lines";
 # Compute the correctness and performance scores
 ################################################
 #
-print "\nCreate a version of ngram without -pg compiler option.\n";
-system("make clean; make ") == 0
-    or die "$0: Could not execute make utility.\n";
 
 system("mkdir $tmpdir") == 0
     or die "$0: Could not make scratch directory $tmpdir.\n";
 
+system("make clean; make V1") == 0
+    or die "$0: Could not execute make utility.\n";
+
 (-e "./ngram" and -x "./ngram")
-    or  die "$0: ERROR: No executable ngram binary.\n";
+    or  die "$0: ERROR: No executable ngram for 'make V1'.\n";
+
+unless (system("cp ngram $tmpdir/ngramV1") == 0) { 
+    clean($tmpdir);
+    die "$0: Could not copy 'V1' ngram to scratch directory $tmpdir.\n";
+}
+
+system("make clean; make V2") == 0
+    or die "$0: Could not execute make utility.\n";
+
+(-e "./ngram" and -x "./ngram")
+    or  die "$0: ERROR: No executable ngram for 'make V2'.\n";
+
+unless (system("cp ngram $tmpdir/ngramV2") == 0) { 
+    clean($tmpdir);
+    die "$0: Could not copy 'V2' ngram to scratch directory $tmpdir.\n";
+}
 
 (-e "$shakespeare")
     or  die "$0: ERROR: No $shakespeare, which is needed to check for correctness .\n";
@@ -45,20 +61,21 @@ system("mkdir $tmpdir") == 0
 (-e "$short")
     or  die "$0: ERROR: No $short, which is needed to check for memory leaks.\n";
 
-# Copy the student's work to the scratch directory
-unless (system("cp ngram $tmpdir/ngram") == 0) { 
-    clean($tmpdir);
-    die "$0: Could not copy file ngram to scratch directory $tmpdir.\n";
-}
-
 print "\nCreate a version of ngram with -pg compiler option.\n";
-system("make clean; make PFLAG='-pg'") == 0
+system("make clean; make PFLAG='-pg' V1") == 0
     or die "$0: Could not execute make utility.\n";
 
-# Copy the student's work to the scratch directory
-unless (system("mv ngram $tmpdir/ngramp") == 0) { 
+unless (system("cp ngram $tmpdir/ngramV1p") == 0) { 
     clean($tmpdir);
-    die "$0: Could not copy file ngram to scratch directory $tmpdir.\n";
+    die "$0: Could not copy 'profiling' ngram to scratch directory $tmpdir.\n";
+}
+
+system("make clean; make PFLAG='-pg' V2") == 0
+    or die "$0: Could not execute make utility.\n";
+
+unless (system("cp ngram $tmpdir/ngramV2p") == 0) { 
+    clean($tmpdir);
+    die "$0: Could not copy 'profiling' ngram to scratch directory $tmpdir.\n";
 }
 
 # Copy the input files to the scratch directory
@@ -87,92 +104,143 @@ unless (chdir($tmpdir)) {
 #
 # Run the tests
 #
-print "\n1. Running valgrind to check for memory errors.\n";
+print "\n1. Running valgrind with 'V1' ngram and short to check for memory errors.\n";
+system("cp $tmpdir/ngramV1 $tmpdir/ngram");
 system("valgrind --tool=memcheck --leak-check=full $tmpdir/ngram $tmpdir/short >& $tmpdir/valgrind.output"); 
-
 open(my $fh, "$tmpdir/valgrind.output") or 
 die("Unable to open $tmpdir/valgrind.output");
 my @lines = <$fh>;
 my $last  = pop (@lines);
 close $fh;
-my $errors = $1 if (($last =~ /ERROR SUMMARY: (\d+) errors/));
+my $V1errors = $1 if (($last =~ /ERROR SUMMARY: (\d+) errors/));
 
-print "2. Running ngram on shakespeare9000Lines to check for correctness.\n";
+print "2. Running 'V1' ngram on shakespeare9000Lines to check for correctness.\n";
+system("cp $tmpdir/ngramV1 $tmpdir/ngram");
 system("$tmpdir/ngramcheck.sh > $tmpdir/ngramcheck.output"); 
 open(my $fh, "$tmpdir/ngramcheck.output") or 
 die("Unable to open $tmpdir/ngramcheck.output");
 my @lines = <$fh>;
 my $last  = pop (@lines);
 close $fh;
-my $correct = "no";
-$correct = "yes" if ($last =~ /Test passed/);
+my $V1correct = "no";
+$V1correct = "yes" if ($last =~ /Test passed/);
 
-print "3. Running gprof to collect timing.\n";
-system("$tmpdir/ngramp  $tmpdir/shakespeare9000Lines > $tmpdir/ngramp.output"); 
-system("gprof $tmpdir/ngramp > $tmpdir/gprof.output"); 
-open(my $fh, "$tmpdir/gprof.output") or 
-die("Unable to open $tmpdir/gprof.output");
+print "3. Running gprof with 'V1' ngram to collect timing.\n";
+system("$tmpdir/ngramV1p  $shakespeare > $tmpdir/ngramV1p.output"); 
+system("gprof $tmpdir/ngramV1p > $tmpdir/gprofV1.output"); 
+open(my $fh, "$tmpdir/gprofV1.output") or 
+die("Unable to open $tmpdir/gprofV1.output");
 my @lines = <$fh>;
-my $seconds = "1000.0";
+my $V1seconds = "1000.0";
 foreach (@lines)
 {
-   $seconds = $1 if /^granularity: .+ of (.+) seconds$/;
+   $V1seconds = $1 if /^granularity: .+ of (.+) seconds$/;
+}
+close $fh;
+
+print "4. Running valgrind with 'V2' ngram and short to check for memory errors.\n";
+system("cp $tmpdir/ngramV2 $tmpdir/ngram");
+system("valgrind --tool=memcheck --leak-check=full $tmpdir/ngram $tmpdir/short >& $tmpdir/valgrind.output"); 
+open(my $fh, "$tmpdir/valgrind.output") or 
+die("Unable to open $tmpdir/valgrind.output");
+my @lines = <$fh>;
+my $last  = pop (@lines);
+close $fh;
+my $V2errors = $1 if (($last =~ /ERROR SUMMARY: (\d+) errors/));
+
+print "5. Running 'V2' ngram on shakespeare9000Lines to check for correctness.\n";
+system("cp $tmpdir/ngramV2 $tmpdir/ngram");
+system("$tmpdir/ngramcheck.sh > $tmpdir/ngramcheck.output"); 
+open(my $fh, "$tmpdir/ngramcheck.output") or 
+die("Unable to open $tmpdir/ngramcheck.output");
+my @lines = <$fh>;
+my $last  = pop (@lines);
+close $fh;
+my $V2correct = "no";
+$V2correct = "yes" if ($last =~ /Test passed/);
+
+print "6. Running gprof with 'V2' ngram to collect timing.\n";
+system("$tmpdir/ngramV2p  $shakespeare > $tmpdir/ngramV2p.output"); 
+system("gprof $tmpdir/ngramV2p > $tmpdir/gprofV2.output"); 
+open(my $fh, "$tmpdir/gprofV2.output") or 
+die("Unable to open $tmpdir/gprofV2.output");
+my @lines = <$fh>;
+my $V2seconds = "1000.0";
+foreach (@lines)
+{
+   $V2seconds = $1 if /^granularity: .+ of (.+) seconds$/;
 }
 close $fh;
 
 #calculate score
 my $score = 0;
 
-if ($seconds < 0.5)
-{
-   $score = 85;
-} elsif ($seconds < 1.0)
-{
-   $score = 75;
-} elsif ($seconds < 1.5)
-{
-   $score = 65;
-} elsif ($seconds < 2.0)
-{
-   $score = 55;
-} elsif ($seconds < 2.5)
+if ($V1correct eq "yes" and $V1seconds < 0.5)
 {
    $score = 45;
-} elsif ($seconds < 3.0)
+} elsif ($V1correct eq "yes" and $V1seconds < 1.0)
+{
+   $score = 40;
+} elsif ($V1correct eq "yes" and $V1seconds < 1.5)
 {
    $score = 35;
-} elsif ($seconds < 3.5)
+} elsif ($V1correct eq "yes" and $V1seconds < 2.0)
+{
+   $score = 30;
+} elsif ($V1correct eq "yes")
 {
    $score = 25;
-} elsif ($seconds < 4.0)
-{
-   $score = 15;
-} else
-{
-   $score = 5;
 }
 
-if ($errors == "0") { $score = $score + 15; }
-if ($correct eq "no") { $score = 0; }
+if ($V2correct eq "yes" and $V2seconds < 0.5)
+{
+   $score = $score + 45;
+} elsif ($V2correct eq "yes" and $V2seconds < 1.0)
+{
+   $score = $score + 40;
+} elsif ($V2correct eq "yes" and $V2seconds < 1.5)
+{
+   $score = $score + 35;
+} elsif ($V2correct eq "yes" and $V2seconds < 2.0)
+{
+   $score = $score + 30;
+} elsif ($V2correct eq "yes")
+{
+   $score = $score + 25;
+}
+
+if ($V1errors == "0") { $score = $score + 5; }
+if ($V2errors == "0") { $score = $score + 5; }
 
 
 # 
-# Print a table of results sorted by puzzle number
-#
+# Output results
 
 print "\n";
+printf("Version 1\n");
 printf("%15s\t%15s\t%15s\t%15s\n", "Correct Output?", "Memory Errors", 
-                             "Time (seconds)", "Score");
-printf("%15s\t%15s\t%15s\t%15d\n", $correct, $errors, $seconds, $score);
+                             "Time (seconds)");
+printf("%15s\t%15s\t%15s\t%15d\n", $V1correct, $V1errors, 
+                                   $V1seconds);
+printf("\nVersion 2\n");
+printf("%15s\t%15s\t%15s\t%15s\n", "Correct Output?", "Memory Errors", 
+                             "Time (seconds)");
+printf("%15s\t%15s\t%15s\t%15d\n", $V2correct, $V2errors, 
+                                   $V2seconds) ;
 
+print "\n";
+
+printf("\nSCORE: %d\n", $score);
 
 #
 # Update the scoreboard if asked
 #
 if ($ARGV[0] eq "-u") {
     my $name = $ARGV[1];
-    # this sends all the information, only the name and time are displayed in the html
-    send_score_to_server($name, $correct, $errors, $seconds, $score);
+    # send the name and seconds to the scoreboard
+    my $seconds = $V1seconds;
+    if ($V2seconds < $seconds) { $seconds = $V2seconds; }
+    send_score_to_server($name, $seconds);
 }
 
 # Clean up and exit
@@ -195,8 +263,7 @@ sub clean {
 
 sub send_score_to_server {
 
-    my ($name, $correct_output, $mem_errors, $time, $score) = @_;
-
+    my ($name, $seconds) = @_; 
     
     my $socket = new IO::Socket::INET (
 	PeerHost => 'localhost',
@@ -207,7 +274,7 @@ sub send_score_to_server {
     # print "connected to the server\n";
     
     # data to send to a server
-    my $req = "$name,$correct_output,$mem_errors,$time,$score";
+    my $req = "$name,$seconds";
     my $size = $socket->send($req);
     # print "sent data of length $size\n";
     

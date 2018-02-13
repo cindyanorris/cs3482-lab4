@@ -6,7 +6,10 @@ LFLAGS = $(PFLAG)
 .C.o:
 	$(CC) $(CFLAGS) $< -o $@
 
-best:
+V1:
+	make NgramLinkedList
+
+V2:
 	make NgramLinkedList
 
 all:

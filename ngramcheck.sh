@@ -105,6 +105,7 @@ if [ -s diffs ]; then
   cat diffs
   rm diffs
 else
+  rm diffs
   printf "Test passed\n";
 fi
 #rm $filename
